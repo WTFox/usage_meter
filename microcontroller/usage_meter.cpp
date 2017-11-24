@@ -1,7 +1,8 @@
-#include "Particle.h"
-#include "lib/Particle-NeoPixel/src/neopixel/neopixel.h"
+// This #include statement was automatically added by the Particle IDE.
+#include <ArduinoJson.h>
 
-SYSTEM_MODE(AUTOMATIC);
+// This #include statement was automatically added by the Particle IDE.
+#include <neopixel.h>
 
 #define PIXEL_PIN D2
 #define PIXEL_COUNT 24
@@ -9,51 +10,49 @@ SYSTEM_MODE(AUTOMATIC);
 
 Adafruit_NeoPixel strip(PIXEL_COUNT, PIXEL_PIN, PIXEL_TYPE);
 
+void responseHandler(const char *event, const char *data);
+
 void setup() {
-    Serial.begin(9600);
-    Serial.println("Serial Begin");
     strip.begin();
-    strip.setBrightness(20);
-    strip.show(); 
-}
-
-void fillGradient(uint32_t startColor, uint32_t endColor) {
-    uint16_t pixelIndex;
-    uint16_t lightValue;
-    for (pixelIndex=0; pixelIndex<strip.numPixels(); pixelIndex++) {
-        for (lightValue=0; lightValue<255; lightValue+=25) {
-            uint32_t color = strip.Color(0 +  lightValue, 255 - lightValue, 0);
-            strip.setPixelColor(pixelIndex, color);
-            // uint16_t mappedValue = map(i, 0, strip.numPixels(), 0, 1);
-            // float x = mappedValue / 100;
-            // uint32_t color = strip.Color(2.0f * x, 2.0f * (1 - x), 0);
-        }
-        strip.show();
-        delay(100);
-    }
-}
-
-void updateLights() {
-    strip.clear();
-    delay(1000);
-
-    // Only light up 10 lights
-    uint16_t length = 10;
-
-    // updateLength to display period percentage
-    strip.updateLength(length);
-
-    // default start to green
-    uint32_t startColor = strip.Color(0, 255, 0);
-    
-    // default end to red
-    // TODO calculate ending gradient
-    uint32_t endColor = strip.Color(255, 0, 0);
-
-    fillGradient(startColor, endColor);
+    strip.setBrightness(50);
+    strip.show();
+    Particle.subscribe("hook-response/data_usage/0", responseHandler, MY_DEVICES);
 }
 
 void loop() {
-    updateLights();
-    delay(1000 * 10);
+    Particle.publish("data_usage");
+    delay(65 * 60 * 1000);
+}
+
+void fillGradient(uint8_t length, int wait) {
+    int pixelIndex;
+    float lightValue = 0;
+    float incrementingAmount = 255 / strip.numPixels();
+    for (pixelIndex = 0; pixelIndex < length; pixelIndex++) {
+        uint32_t color = strip.Color(0 + lightValue, 255 - lightValue, 0);
+        strip.setPixelColor(pixelIndex, color);
+        strip.show();
+        lightValue += incrementingAmount;
+        delay(wait);
+    }
+}
+
+void updateLights(int dataUsedPercentage, int wait) {
+    float length = strip.numPixels() * ((float)dataUsedPercentage / 100);
+    for (int i = 0; i < 4; i++) {
+        fillGradient(length, wait);
+        // wait 15 minutes
+        delay(15 * 60 * 1000);
+        strip.clear();
+    }
+}
+
+void responseHandler(const char *event, const char *data) {
+    StaticJsonBuffer<512> jsonBuffer;
+    JsonObject &root = jsonBuffer.parseObject(data);
+    int dataUsedPercentage = root["data_used_percentage"];
+    if (dataUsedPercentage > 100) {
+        dataUsedPercentage = 100;
+    }
+    updateLights(dataUsedPercentage, 200);
 }
