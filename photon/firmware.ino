@@ -7,10 +7,6 @@
    
  - Particle-Neopixel
    - https://github.com/technobly/Particle-NeoPixel
-
-I didn't include the dependencies since I built this via
-https://build.particle.io, but I've included the repos 
-in case they're needed later. 
 */
 #include <ArduinoJson.h>
 #include <neopixel.h>
@@ -22,8 +18,10 @@ Connected to Pin D2 on a Particle Photon.
 #define PIXEL_PIN D2
 #define PIXEL_COUNT 24
 #define PIXEL_TYPE WS2812
-#define PIXEL_ANIMATION_DELAY 250
-#define PIXEL_BRIGHTNESS 13
+#define PIXEL_ANIMATION_DELAY 100
+#define PIXEL_OFFSET 4
+#define PIXEL_BRIGHTNESS 25
+#define NUM_PIXELS 16
 #define MINUTES 60 * 1000
 
 Adafruit_NeoPixel strip(PIXEL_COUNT, PIXEL_PIN, PIXEL_TYPE);
@@ -44,9 +42,10 @@ void loop() {
 
 void fillGradient(uint8_t length) {
     float lightValue = 0;
-    float incrementingAmount = 255 / strip.numPixels();
+    float incrementingAmount = round(255 / NUM_PIXELS);
 
-    for (int pixelIndex = 0; pixelIndex < length; pixelIndex++) {
+    for (int i = 0; i <= length; i++) {
+        int pixelIndex = i + PIXEL_OFFSET;
         uint32_t color = strip.Color(0 + lightValue, 255 - lightValue, 0);
         strip.setPixelColor(pixelIndex, color);
         strip.show();
@@ -57,11 +56,10 @@ void fillGradient(uint8_t length) {
 }
 
 void updateLights(int dataUsedPercentage) {
-    int length = round(strip.numPixels() * ((float)dataUsedPercentage / 100));
-
-    for (int i = 0; i < 4; i++) {
+    int length = round(NUM_PIXELS * ((float)dataUsedPercentage / 100));
+    for (int i = 0; i < 30; i++) {
         fillGradient(length);
-        delay(15 * MINUTES);
+        delay(2 * MINUTES);
         strip.clear();
     }
 }
