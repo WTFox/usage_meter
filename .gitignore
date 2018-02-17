@@ -111,3 +111,5 @@ webserver/env.sh
 webserver/usage.json
 
 nohup.out
+
+webserver/.env
