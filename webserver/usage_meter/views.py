@@ -2,14 +2,15 @@ from flask import request, jsonify
 
 from . import app
 from .usage import format_usage_message, write_usage_json_to_file
-from .utils import read_json_file
+from .utils import read_json_file, expired_file
 
 
 @app.route('/', methods=['GET'])
 def index():
     path = app.config.get('USAGE_JSON_FILE_PATH')
+
     usage_json = read_json_file(path)
-    if not usage_json:
+    if not usage_json or expired_file(path):
         write_usage_json_to_file(
             username=app.config.get('COX_USERNAME'),
             password=app.config.get('COX_PASSWORD'),
